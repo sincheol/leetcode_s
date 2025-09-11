@@ -1,0 +1,24 @@
+* git
+설치 후
+$ git config --global user.email test@email.com
+$ git config --global user.name "Test RealName"
+
+* github ssh
+https://docs.github.com/en/authentication/connecting-to-github-with-ssh/generating-a-new-ssh-key-and-adding-it-to-the-ssh-agent
+
+* github gpg
+https://docs.github.com/en/authentication/managing-commit-signature-verification/generating-a-new-gpg-key
+
+* git gpg
+$ git config --global user.signingkey 85B5FA0A8A67AA1A20FA7D4BE15D651143742DAD
+$ git config --global commit.gpgsign true
+$ git config --global gpg.program gpg
+
+* Inappropriate ioctl for device 문제
+내 경우에는 TTY문제였음
+gpg가 비밀번호를 입력받기 위해 terminal 접근하려는데 TTY를 제공받지 못할때 나타남
+현재 terminal을 gpg의 tty로 설정해줌 아래 링크 참고
+https://unix.stackexchange.com/questions/257061/gentoo-linux-gpg-encrypts-properly-a-file-passed-through-parameter-but-throws-i/257065#257065
+* shell정보
+$ echo $SHELL
+$ open ~/.zshrc #zshrc파일에 위 링크에 있는거 작성
