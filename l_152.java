@@ -48,4 +48,5 @@ x0 ->   even negative -> product all
         odd negative(n) -> 0~n-2 / 1~n-1
 0 ->    cut and recursion to x0
 - count -> if even keep but odd skip
+zz
 */
