@@ -1,5 +1,6 @@
 import json
 import os
+import aiofiles
 from typing import Tuple
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
@@ -35,18 +36,18 @@ def decrypt(encryptedData:str, secretKey:str)->str:
     return pt
 
 
-def read_memo()->None:
+async def read_memo()->None:
     '''
     read memo generator 한줄씩 읽음 한줄 -> {"title": title, "content": content} 형태
     '''
     if os.path.exists(f_name):
-        with open (f_name, 'rb') as file:
-            for line in file:
+        async with aiofiles.open (f_name, 'rb') as file:
+            async for line in file:
                 yield json.loads(line)
     else:
         print('메모장이 비어있습니다.')
 
-def read_f(a:str)->Tuple[str,str]:
+async def read_f(a:str)->Tuple[str,str]:
     '''
     메모장 조회 title, content를 리턴해줌
     우선 read_memo generator method를 통해 사용자에게 title 목록 다 보여줌
@@ -56,7 +57,7 @@ def read_f(a:str)->Tuple[str,str]:
     '''
     tmp = 0
     title = content = ""
-    for memo in read_memo(): #generator기 때문에 매번 호출 해줘야 함... 
+    async for memo in read_memo(): #generator기 때문에 매번 호출 해줘야 함... 
         tmp += 1
         print(f"{tmp} : {memo['title']}")
         
@@ -66,7 +67,7 @@ def read_f(a:str)->Tuple[str,str]:
 
     n = int(input(f'{a}하고 싶은 메모(번호):')) #번호 선택 하겠지
     tmp = 0
-    for memo in read_memo():
+    async for memo in read_memo():
         tmp += 1
         if tmp == n:
             title = memo['title']
@@ -75,7 +76,7 @@ def read_f(a:str)->Tuple[str,str]:
     if title=="" and content=="":
         raise ValueError('없는 번호입니다.')
 
-    if title.split(' ')[0]=='(잠금)':
+    if title.split(' ')[0]=='(잠금)': #잠금일때 비밀번호 확인
         tmp = 0
         while(True):
             if tmp>4:
@@ -95,16 +96,19 @@ def read_f(a:str)->Tuple[str,str]:
                 print('잘못 입력하셨습니다.')
         content = "".join(content.split(' ')[1:])
 
-    return title, content #선택한 idx가 필요하니 return 해줌
+    return title, content
 
-def rew_memo(title:str)->None:
+async def rew_memo(title:str)->None:
+    '''
+    해당 title의 메모를 삭제함
+    '''
     try:
-        with open('data.jsonl.tmp','w') as out_file:
-            for memo in read_memo():
+        async with aiofiles.open('data.jsonl.tmp','w') as out_file:
+            async for memo in read_memo():
                 if memo['title'] == title:
                     continue
                 record = json.dumps(memo)
-                out_file.write(record + '\n')
+                await out_file.write(record + '\n')
         os.replace('data.jsonl.tmp',f_name)
     except Exception as error:
         print(error)
@@ -121,7 +125,7 @@ def write_c()->str:
         content+=(tmp+'\n')
     return content
 
-def create_f(i:int, title:str, content:str)->None:
+async def create_f(i:int, title:str, content:str)->None:
     '''
     i==1
         사용자에게 title입력받고 write_c호출을 통해 content 입력받음
@@ -135,7 +139,7 @@ def create_f(i:int, title:str, content:str)->None:
         이후에는 encryption필요한지부터 1과 같음
     '''
     if i != 1: #우선 내용 삭제
-        rew_memo(title)
+        await rew_memo(title)
     else: #1일때는 삭제 필요없음.. 내용 작성
         title = input(f'title :') #사용자에게 title입력받음
         content = write_c()
@@ -149,9 +153,9 @@ def create_f(i:int, title:str, content:str)->None:
             w_mode = 'a'
         else:
             w_mode = 'w'
-        with open(f_name, w_mode) as file:
+        async with aiofiles.open(f_name, w_mode) as file:
             record = json.dumps(memo)
-            file.write(record + '\n')
+            await file.write(record + '\n')
     print(f'{i} 완료')
 
 def ec_f(title:str, content:str)->Tuple[str,str]:
