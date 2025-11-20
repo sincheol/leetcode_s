@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>쿠키를 이용한 사용자 로그인 시뮬레이션</title>
+  <style><!--스타일코드 생략--></style>
+  <script>
+    // 로그인 요청
+    const loginUser = async () => {
+      try {
+        const res = await fetch("/auth/login", { method: "POST" });
+
+        if (res.ok) {
+          const data = await res.json();
+          const username = data.username;
+          document.getElementById("loginStatus").textContent =
+            `환영합니다, ${username}님!`;
+        } else if (res.status === 401) {
+          document.getElementById("loginStatus").textContent =
+            "로그인 실패. 자격 증명을 확인하세요.";
+        } else {
+          document.getElementById("loginStatus").textContent =
+            "예상치 못한 오류가 발생했습니다.";
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    // 로그아웃 요청
+    const logoutUser = async () => {
+      try {
+        const res = await fetch("/auth/logout", { method: "DELETE" });
+        if (res.status === 204) {
+          document.getElementById("loginStatus").textContent = "로그인이 필요합니다.";
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    // 로그인 상태 확인
+    const checkLoginStatus = async () => {
+      try {
+        const res = await fetch("/auth/status");
+        const statusText = document.getElementById("loginStatus");
+
+        if (res.status === 200) {
+          const data = await res.json();
+          const username = data.username;
+          statusText.textContent = `환영합니다, ${username}님!`;
+        } else if (res.status === 401) {
+          statusText.textContent = "로그인이 필요합니다.";
+        } else {
+          statusText.textContent = "서버 오류로 상태를 확인할 수 없습니다.";
+        }
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    document.addEventListener("DOMContentLoaded", checkLoginStatus);
+  </script>
+</head>
+<body>
+  <h2>사용자 로그인 시뮬레이션</h2>
+  <div id="loginStatus">로그인이 필요합니다.</div>
+  <div>
+    <button onclick="loginUser()">로그인</button>
+    <button onclick="logoutUser()">로그아웃</button>
+  </div>
+</body>
+</html>
+
