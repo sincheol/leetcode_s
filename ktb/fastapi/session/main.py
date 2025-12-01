@@ -1,5 +1,7 @@
 from router.auth_router import router as auth_router
 from router.system_router import router as system_router
+from router.post_router import router as post_router
+
 '''
 각 파일에서는 router로 부르고 있으니 auth_, system_을 붙여줌
 '''
@@ -27,3 +29,4 @@ app.add_middleware(
 
 app.include_router(system_router)
 app.include_router(auth_router)
+app.include_router(post_router)

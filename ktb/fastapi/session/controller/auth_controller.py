@@ -1,6 +1,45 @@
 import uuid
 from fastapi import Request, HTTPException, Response
 from fastapi.responses import JSONResponse
+from model.user_model import create_user, get_user_by_email
+
+
+
+# 회원가입
+async def signup_user(request: Request):
+    '''
+    mysql을 통해서 db구성
+    '''
+    try:
+        body= await request.json()
+        email = body.get("email")
+        password = body.get("password")
+        nickname = body.get("nickname")
+    except:
+        raise HTTPException(status_code = 400, detail = "Invalid JSON format")
+    
+    if not email or not password or not nickname:
+        raise HTTPException(status_code = 400, detail = "Email, password and nickname required")
+    
+    try:
+        is_created = create_user(email, password, nickname)
+
+        if not is_created:
+            raise HTTPException(status_code=409, detail = "Email already exists")
+        
+        return JSONResponse(
+            status_code=201,
+            content = {
+                "message" : "User created successfully",
+                "email" : email
+            }
+        )
+    
+    except HTTPException as http_ex:
+        raise http_ex
+    except Exception as e: #model에서 던진 e
+        raise HTTPException(status_code = 500, detail = "Internal Server Error")
+    
 
 # 로그인
 async def login_user(request: Request):
@@ -12,31 +51,68 @@ async def login_user(request: Request):
     어떻게 그걸 같은 도메인인지 알고? -> 애초에 쿠키를 받을 때 어디서 가져왔나를 자동으로 기록함
     
     '''
-    body = await request.json()
-    email = body.get("email")
-    password = body.get("password")
+    try:
+        body = await request.json()
+        email = body.get("email")
+        password = body.get("password")
+    except:
+        raise HTTPException(status_code=400, detail = "Invalid JSON format")
 
     # 필수값 검증
     if not email or not password:
         raise HTTPException(status_code=400, detail="email_or_password_required")
+    
+    try:
+        user_record = get_user_by_email(email)
 
-    # 세션 생성
-    session_id = request.session.get("sessionID")
-    if not session_id: #처음 로그인한 사람이라면 session id 할당
+        if not user_record or user_record["password"] != password:
+            raise HTTPException(status_code = 401, detail = "Invalid email or password")
+        #login success
         session_id = str(uuid.uuid4())
         request.session["sessionID"] = session_id
         request.session["email"] = email
+        request.session["nickname"] = user_record.get("nickname", "Unknown") #nickname 못받으면 Unknown으로
+        request.session["user_id"] = user_record.get("id")
 
-    return JSONResponse(
-        status_code=200,
-        content={"session_id": session_id, "email": email}
-    )
+
+        return JSONResponse(
+            status_code=200,
+            content={"message": "login successful",
+                      "session_id": session_id,
+                      "email": email,
+                      "nickname" : user_record.get("nickname")
+                      }
+        )
+    except HTTPException as http_ex:
+        raise http_ex
+    except Exception as e:
+        print(f"DB Error : {e}")
+        raise HTTPException(status_code = 500, detail = "Database Error")
 
 
 # 로그아웃
 async def logout_user(request: Request):
-    try:
-        request.session.clear()
-        return Response(status_code=204)
-    except Exception:
-        raise HTTPException(status_code=500, detail="logout_failed")
+    request.session.clear()
+    return Response(status_code = 204)
+
+# status 확인
+async def get_auth_status(request: Request):
+    username = request.session.get("email")
+    if not username:
+        raise HTTPException(status_code = 401, detail = "unauthorized")
+    return {"username": username}
+
+async def get_my_profile(request: Request):
+    email = request.session.get("email")
+    session_id = request.session.get("sessionID")
+    nickname = request.session.get("nickname")
+    if not email or not session_id:
+        raise HTTPException(status_code = 401, detail = "not_authenticated")
+    return JSONResponse(
+        status_code = 200,
+        content = {
+            "message" : f"Welcome, {email}",
+            "your_session_id" : session_id,
+            "nickname" : nickname
+        }
+    )
