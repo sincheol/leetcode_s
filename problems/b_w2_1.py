@@ -14,4 +14,3 @@ if y<k:
     print("Yonsei Won!")
 else:
     print("Yonsei Lost...")
-``
