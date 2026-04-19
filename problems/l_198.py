@@ -18,6 +18,3 @@ class Solution:
             dp[i] = max(dp[i-2]+dp[i], dp[i-1])
         
         return dp[len(nums)-1]
-
-
-        
